@@ -8,6 +8,8 @@ https://docs.djangoproject.com/en/6.1/howto/deployment/asgi/
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 from channels.routing import ProtocolTypeRouter, URLRouter, ChannelNameRouter
 from channels.auth import AuthMiddlewareStack
