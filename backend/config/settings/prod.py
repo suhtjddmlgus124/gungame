@@ -5,7 +5,7 @@ DEBUG = False
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 
 ALLOWED_HOSTS = [ os.environ.get('DJANGO_ALLOWED_HOST') ]
-CSRF_TRUSTED_ORIGINS = [ os.environ.get('DJANGO_ALLOWED_HOST') ]
+CSRF_TRUSTED_ORIGINS = [ f"https://{os.environ.get('DJANGO_ALLOWED_HOST')}" ]
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
