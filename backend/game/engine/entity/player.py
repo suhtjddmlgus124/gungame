@@ -66,10 +66,12 @@ class Player(pygame.sprite.Sprite):
             'x': self.rect.centerx,
             'y': self.rect.centery,
             'hp': self.hp,
+            'live': self.live,
         }
 
     @classmethod
     def deserialize(self, data):
         player = Player(pk=data['pk'], initial_position=(data['x'], data['y']))
         player.hp = data['hp']
+        player.live = data['live']
         return player
