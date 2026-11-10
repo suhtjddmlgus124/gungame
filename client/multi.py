@@ -40,59 +40,65 @@ async def main(sessionid):
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('GunGame Multi')
 
-    clock = pygame.time.Clock()
+    loop = asyncio.get_running_loop()
     engine = Engine()
     renderer = Renderer(screen)
 
-    async with websockets.connect(
-        f"{'wss://' if TLS else 'ws://'}{URL}/ws/game/instance/{INSTANCEID}/",
-        additional_headers={'Cookie': f'sessionid={sessionid}'}
-    ) as sock:
-        receive_task = asyncio.create_task(receive_state(sock, engine))
+    try:
+        async with websockets.connect(
+            f"{'wss://' if TLS else 'ws://'}{URL}/ws/game/instance/{INSTANCEID}/",
+            additional_headers={'Cookie': f'sessionid={sessionid}'},
+            close_timeout=1,
+        ) as sock:
+            receive_task = asyncio.create_task(receive_state(sock, engine))
 
-        try:
-            running = True
-            while running:
-                clock.tick(FPS)
-
-                shoot = False
-            
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
-                        if event.button == 1:
-                            shoot = True
-
-                keys = pygame.key.get_pressed()
-
-                dx = int(keys[pygame.K_d]) - int(keys[pygame.K_a])
-                dy = int(keys[pygame.K_s]) - int(keys[pygame.K_w])
-                x, y = pygame.mouse.get_pos()
-
-                await sock.send(json.dumps({
-                    'type': 'game.input',
-                    'data': {
-                        'dx': dx,
-                        'dy': dy,
-                        'shoot': shoot,
-                        'x': x,
-                        'y': y,
-                    }
-                }))
-
-                renderer.render(engine)
-
-                await asyncio.sleep(0)
-
-        finally:
-            receive_task.cancel()
             try:
-                await receive_task
-            except asyncio.CancelledError:
-                pass
+                running = True
+                while running:
+                    start = loop.time()
 
-    pygame.quit()
+                    shoot = False
+                
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            running = False
+                        elif event.type == pygame.MOUSEBUTTONDOWN:
+                            if event.button == 1:
+                                shoot = True
+                    
+                    if not running: break
+
+                    keys = pygame.key.get_pressed()
+
+                    dx = int(keys[pygame.K_d]) - int(keys[pygame.K_a])
+                    dy = int(keys[pygame.K_s]) - int(keys[pygame.K_w])
+                    x, y = pygame.mouse.get_pos()
+
+                    await sock.send(json.dumps({
+                        'type': 'game.input',
+                        'data': {
+                            'dx': dx,
+                            'dy': dy,
+                            'shoot': shoot,
+                            'x': x,
+                            'y': y,
+                        }
+                    }))
+
+                    renderer.render(engine)
+
+                    elapsed = loop.time() - start
+                    await asyncio.sleep(max(0, 1/FPS - elapsed))
+
+            finally:
+                receive_task.cancel()
+                try:
+                    await receive_task
+                except asyncio.CancelledError:
+                    pass
+
+    finally:
+        pygame.quit()
 
 if __name__ == '__main__':
     sessionid = get_sessionid()
